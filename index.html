@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administrativo - Teotihuacán</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body class="admin-body">
+    <div class="admin-wrapper">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <img src="https://cdn.shopify.com/s/files/1/0763/5392/9451/files/03_TEOTIHUACAN_-_Fuerzas_Basicas.png?v=1749841591" alt="Teotihuacán Logo" class="sidebar-logo">
+                <h2>Panel Administrativo</h2>
+                <p class="sidebar-subtitle">Teotihuacán Fuerzas Básicas</p>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-tab="casaClub">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    <span>Casa Club</span>
+                </button>
+                <button class="nav-item" data-tab="comedor">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+                        <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+                        <line x1="6" y1="1" x2="6" y2="4"></line>
+                        <line x1="10" y1="1" x2="10" y2="4"></line>
+                        <line x1="14" y1="1" x2="14" y2="4"></line>
+                    </svg>
+                    <span>Comedor</span>
+                </button>
+            </nav>
+
+            <div style="padding: 20px; margin-top: auto;">
+                <div style="padding: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; display: flex; align-items: center; gap: 8px;">
+                    <div id="connectionStatus" style="width: 8px; height: 8px; border-radius: 50%; background: #10B981;"></div>
+                    <span style="font-size: 0.875rem; color: #10B981; font-weight: 500;">Conectado a Firebase</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="admin-main">
+            <!-- Casa Club Section -->
+            <div class="tab-content active" id="casaClub">
+                <div class="content-header">
+                    <div class="header-info">
+                        <h1>Casa Club - Entradas y Salidas</h1>
+                        <p class="header-description">Gestión de accesos a instalaciones</p>
+                    </div>
+                    <div class="header-actions">
+                        <span class="status-badge">
+                            <span class="status-dot"></span>
+                            <span id="countCasaClub">0 registros</span>
+                        </span>
+                        <button class="btn-action btn-export" id="btnExportarCasaClub">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Exportar PDF
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filters-card">
+                    <div class="filter-item">
+                        <label>Buscar por nombre</label>
+                        <div class="input-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                            <input type="text" id="filtroNombreCasa" placeholder="Nombre del jugador">
+                        </div>
+                    </div>
+                    <div class="filter-item">
+                        <label>Filtrar por categoría</label>
+                        <select id="filtroCategoriaCasa" class="select-clean">
+                            <option value="">Todas las categorías</option>
+                            <option value="Sub-14">Sub-14</option>
+                            <option value="Sub-16">Sub-16</option>
+                            <option value="Sub-18">Sub-18</option>
+                            <option value="Soles TDP">Soles TDP</option>
+                            <option value="Alebrijes TDP">Alebrijes TDP</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-card">
+                    <table class="table-modern">
+                        <thead>
+                            <tr>
+                                <th>Jugador</th>
+                                <th>Categoría</th>
+                                <th>Contacto</th>
+                                <th>Destino</th>
+                                <th>Hora Entrada</th>
+                                <th>Hora Salida</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaCasaClub">
+                            <tr>
+                                <td colspan="7">
+                                    <div class="table-empty">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                        <p>Cargando datos...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Comedor Section -->
+            <div class="tab-content" id="comedor">
+                <div class="content-header">
+                    <div class="header-info">
+                        <h1>Comedor - Control de Acceso</h1>
+                        <p class="header-description">Registro de entradas al comedor</p>
+                    </div>
+                    <div class="header-actions">
+                        <span class="status-badge">
+                            <span class="status-dot"></span>
+                            <span id="countComedor">0 registros</span>
+                        </span>
+                        <button class="btn-action btn-export" id="btnExportarComedor">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Exportar PDF
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filters-card">
+                    <div class="filter-item">
+                        <label>Buscar por nombre</label>
+                        <div class="input-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                            <input type="text" id="filtroNombreComedor" placeholder="Nombre del jugador">
+                        </div>
+                    </div>
+                    <div class="filter-item">
+                        <label>Filtrar por categoría</label>
+                        <select id="filtroCategoriaComedor" class="select-clean">
+                            <option value="">Todas las categorías</option>
+                            <option value="Sub-14">Sub-14</option>
+                            <option value="Sub-16">Sub-16</option>
+                            <option value="Sub-18">Sub-18</option>
+                            <option value="Soles TDP">Soles TDP</option>
+                            <option value="Alebrijes TDP">Alebrijes TDP</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-card">
+                    <table class="table-modern">
+                        <thead>
+                            <tr>
+                                <th>Jugador</th>
+                                <th>Categoría</th>
+                                <th>Hora de Entrada</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaComedor">
+                            <tr>
+                                <td colspan="3">
+                                    <div class="table-empty">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                        <p>Cargando datos...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module" src="admin.js"></script>
+</body>
+</html>
