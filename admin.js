@@ -763,7 +763,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         configurarListenersCasaClub();
         configurarListenersComedor();
         
-        console.log('✅ Sistema iniciado');
+        console.log('Sistema iniciado');
         mostrarNotificacion('Sistema iniciado correctamente', 'success');
         
     } catch (error) {
