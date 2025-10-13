@@ -9,7 +9,11 @@ import {
     getDocs, 
     onSnapshot,
     query,
-    orderBy 
+    orderBy,
+    deleteDoc,
+    doc,
+    limit,
+    enableIndexedDbPersistence
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -26,6 +30,22 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// OPTIMIZACIÓN: Habilitar caché local para reducir lecturas
+enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === 'failed-precondition') {
+        console.warn('Persistencia no disponible: múltiples pestañas abiertas');
+    } else if (err.code === 'unimplemented') {
+        console.warn('Persistencia no soportada en este navegador');
+    }
+});
+
+// ========================================
+// CONFIGURACIÓN DE OPTIMIZACIÓN
+// ========================================
+
+let limiteCasaClub = 100; // Límite configurable
+let limiteComedor = 100;  // Límite configurable
+
 // ========================================
 // COLLECTIONS
 // ========================================
@@ -41,9 +61,13 @@ const tablaCasaClub = document.getElementById('tablaCasaClub');
 const tablaComedor = document.getElementById('tablaComedor');
 const btnExportarCasaClub = document.getElementById('btnExportarCasaClub');
 const btnExportarComedor = document.getElementById('btnExportarComedor');
+const btnBorrarTodoCasaClub = document.getElementById('btnBorrarTodoCasaClub');
+const btnBorrarTodoComedor = document.getElementById('btnBorrarTodoComedor');
 const countCasaClub = document.getElementById('countCasaClub');
 const countComedor = document.getElementById('countComedor');
 const connectionStatus = document.getElementById('connectionStatus');
+const selectLimiteCasa = document.getElementById('selectLimiteCasa');
+const selectLimiteComedor = document.getElementById('selectLimiteComedor');
 
 // Filters
 const filtroNombreCasa = document.getElementById('filtroNombreCasa');
@@ -57,6 +81,8 @@ const filtroCategoriaComedor = document.getElementById('filtroCategoriaComedor')
 
 let datosCasaClub = [];
 let datosComedor = [];
+let unsubscribeCasaClub = null;
+let unsubscribeComedor = null;
 
 // ========================================
 // NAVIGATION HANDLING
@@ -73,78 +99,234 @@ document.querySelectorAll('.nav-item').forEach(btn => {
 });
 
 // ========================================
-// FIREBASE DATA FETCHING
+// DELETE FUNCTIONS - INDIVIDUAL
 // ========================================
 
-async function cargarDatosCasaClub() {
+async function eliminarRegistroCasaClub(id) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este registro?')) {
+        return;
+    }
+    
     try {
-        const q = query(collection(db, CASA_CLUB_COLLECTION), orderBy('timestamp', 'desc'));
-        const querySnapshot = await getDocs(q);
-        
-        datosCasaClub = [];
-        querySnapshot.forEach((doc) => {
-            datosCasaClub.push({ id: doc.id, ...doc.data() });
-        });
-        
-        aplicarFiltrosCasaClub();
+        await deleteDoc(doc(db, CASA_CLUB_COLLECTION, id));
+        mostrarNotificacion('Registro eliminado correctamente', 'success');
     } catch (error) {
-        console.error('Error cargando Casa Club:', error);
-        mostrarError('Casa Club');
+        console.error('Error eliminando registro:', error);
+        mostrarNotificacion('Error al eliminar el registro', 'error');
     }
 }
 
-async function cargarDatosComedor() {
+async function eliminarRegistroComedor(id) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este registro?')) {
+        return;
+    }
+    
     try {
-        const q = query(collection(db, COMEDOR_COLLECTION), orderBy('timestamp', 'desc'));
-        const querySnapshot = await getDocs(q);
-        
-        datosComedor = [];
-        querySnapshot.forEach((doc) => {
-            datosComedor.push({ id: doc.id, ...doc.data() });
-        });
-        
-        aplicarFiltrosComedor();
+        await deleteDoc(doc(db, COMEDOR_COLLECTION, id));
+        mostrarNotificacion('Registro eliminado correctamente', 'success');
     } catch (error) {
-        console.error('Error cargando Comedor:', error);
-        mostrarError('Comedor');
+        console.error('Error eliminando registro:', error);
+        mostrarNotificacion('Error al eliminar el registro', 'error');
     }
 }
 
 // ========================================
-// REAL-TIME LISTENERS
+// DELETE FUNCTIONS - BULK DELETE
+// ========================================
+
+async function borrarTodosCasaClub() {
+    const confirmacion = prompt(
+        '⚠️ ADVERTENCIA: Esta acción eliminará TODOS los registros de Casa Club.\n\n' +
+        'Para confirmar, escribe la palabra: BORRAR\n\n' +
+        '(Esta acción no se puede deshacer)'
+    );
+    
+    if (confirmacion === null) {
+        return;
+    }
+    
+    if (confirmacion.toUpperCase() !== 'BORRAR') {
+        mostrarNotificacion('Operación cancelada. Debes escribir "BORRAR" exactamente.', 'error');
+        return;
+    }
+    
+    try {
+        const batchSize = 100;
+        let totalEliminados = 0;
+        
+        mostrarNotificacion('Iniciando eliminación masiva...', 'success');
+        
+        while (true) {
+            const q = query(collection(db, CASA_CLUB_COLLECTION), limit(batchSize));
+            const querySnapshot = await getDocs(q);
+            
+            if (querySnapshot.empty) {
+                break;
+            }
+            
+            const promesas = querySnapshot.docs.map(documento => 
+                deleteDoc(doc(db, CASA_CLUB_COLLECTION, documento.id))
+            );
+            
+            await Promise.all(promesas);
+            totalEliminados += querySnapshot.size;
+            
+            mostrarNotificacion(`Eliminados ${totalEliminados} registros...`, 'success');
+        }
+        
+        mostrarNotificacion(`✅ Total eliminados: ${totalEliminados} registros`, 'success');
+        
+    } catch (error) {
+        console.error('Error eliminando todos los registros:', error);
+        mostrarNotificacion('Error al eliminar los registros. Intenta nuevamente.', 'error');
+    }
+}
+
+async function borrarTodosComedor() {
+    const confirmacion = prompt(
+        '⚠️ ADVERTENCIA: Esta acción eliminará TODOS los registros del Comedor.\n\n' +
+        'Para confirmar, escribe la palabra: BORRAR\n\n' +
+        '(Esta acción no se puede deshacer)'
+    );
+    
+    if (confirmacion === null) {
+        return;
+    }
+    
+    if (confirmacion.toUpperCase() !== 'BORRAR') {
+        mostrarNotificacion('Operación cancelada. Debes escribir "BORRAR" exactamente.', 'error');
+        return;
+    }
+    
+    try {
+        const batchSize = 100;
+        let totalEliminados = 0;
+        
+        mostrarNotificacion('Iniciando eliminación masiva...', 'success');
+        
+        while (true) {
+            const q = query(collection(db, COMEDOR_COLLECTION), limit(batchSize));
+            const querySnapshot = await getDocs(q);
+            
+            if (querySnapshot.empty) {
+                break;
+            }
+            
+            const promesas = querySnapshot.docs.map(documento => 
+                deleteDoc(doc(db, COMEDOR_COLLECTION, documento.id))
+            );
+            
+            await Promise.all(promesas);
+            totalEliminados += querySnapshot.size;
+            
+            mostrarNotificacion(`Eliminados ${totalEliminados} registros...`, 'success');
+        }
+        
+        mostrarNotificacion(`✅ Total eliminados: ${totalEliminados} registros`, 'success');
+        
+    } catch (error) {
+        console.error('Error eliminando todos los registros:', error);
+        mostrarNotificacion('Error al eliminar los registros. Intenta nuevamente.', 'error');
+    }
+}
+
+// ========================================
+// REAL-TIME LISTENERS - CON LÍMITE CONFIGURABLE
 // ========================================
 
 function configurarListenersCasaClub() {
-    const q = query(collection(db, CASA_CLUB_COLLECTION), orderBy('timestamp', 'desc'));
+    // Cancelar listener anterior si existe
+    if (unsubscribeCasaClub) {
+        unsubscribeCasaClub();
+    }
     
-    onSnapshot(q, (snapshot) => {
+    const limite = limiteCasaClub === 0 ? 10000 : limiteCasaClub; // 0 = "todos" (máximo 10000)
+    
+    const q = query(
+        collection(db, CASA_CLUB_COLLECTION), 
+        orderBy('timestamp', 'desc'),
+        limit(limite)
+    );
+    
+    unsubscribeCasaClub = onSnapshot(q, (snapshot) => {
+        console.log(`📊 Casa Club - Documentos recibidos: ${snapshot.docs.length} (límite: ${limiteCasaClub === 0 ? 'todos' : limiteCasaClub})`);
+        
         datosCasaClub = [];
         snapshot.forEach((doc) => {
             datosCasaClub.push({ id: doc.id, ...doc.data() });
         });
+        
         aplicarFiltrosCasaClub();
         updateConnectionStatus(true);
     }, (error) => {
         console.error('Error en listener Casa Club:', error);
         updateConnectionStatus(false);
     });
+    
+    console.log(`✅ Listener Casa Club configurado (límite: ${limiteCasaClub === 0 ? 'todos' : limiteCasaClub})`);
 }
 
 function configurarListenersComedor() {
-    const q = query(collection(db, COMEDOR_COLLECTION), orderBy('timestamp', 'desc'));
+    // Cancelar listener anterior si existe
+    if (unsubscribeComedor) {
+        unsubscribeComedor();
+    }
     
-    onSnapshot(q, (snapshot) => {
+    const limite = limiteComedor === 0 ? 10000 : limiteComedor;
+    
+    const q = query(
+        collection(db, COMEDOR_COLLECTION), 
+        orderBy('timestamp', 'desc'),
+        limit(limite)
+    );
+    
+    unsubscribeComedor = onSnapshot(q, (snapshot) => {
+        console.log(`📊 Comedor - Documentos recibidos: ${snapshot.docs.length} (límite: ${limiteComedor === 0 ? 'todos' : limiteComedor})`);
+        
         datosComedor = [];
         snapshot.forEach((doc) => {
             datosComedor.push({ id: doc.id, ...doc.data() });
         });
+        
         aplicarFiltrosComedor();
         updateConnectionStatus(true);
     }, (error) => {
         console.error('Error en listener Comedor:', error);
         updateConnectionStatus(false);
     });
+    
+    console.log(`✅ Listener Comedor configurado (límite: ${limiteComedor === 0 ? 'todos' : limiteComedor})`);
 }
+
+// ========================================
+// CAMBIO DE LÍMITE
+// ========================================
+
+selectLimiteCasa.addEventListener('change', (e) => {
+    const nuevoLimite = parseInt(e.target.value);
+    limiteCasaClub = nuevoLimite;
+    
+    console.log(`🔄 Cambiando límite Casa Club a: ${nuevoLimite === 0 ? 'todos' : nuevoLimite}`);
+    
+    if (nuevoLimite === 0) {
+        mostrarNotificacion('⚠️ Cargando TODOS los registros. Esto puede consumir muchas lecturas.', 'error');
+    }
+    
+    configurarListenersCasaClub();
+});
+
+selectLimiteComedor.addEventListener('change', (e) => {
+    const nuevoLimite = parseInt(e.target.value);
+    limiteComedor = nuevoLimite;
+    
+    console.log(`🔄 Cambiando límite Comedor a: ${nuevoLimite === 0 ? 'todos' : nuevoLimite}`);
+    
+    if (nuevoLimite === 0) {
+        mostrarNotificacion('⚠️ Cargando TODOS los registros. Esto puede consumir muchas lecturas.', 'error');
+    }
+    
+    configurarListenersComedor();
+});
 
 // ========================================
 // CONNECTION STATUS
@@ -168,12 +350,18 @@ function updateConnectionStatus(connected) {
 // ========================================
 
 function renderizarTablaCasaClub(datos) {
-    countCasaClub.textContent = `${datos.length} ${datos.length === 1 ? 'registro' : 'registros'}`;
+    const totalMostrado = datos.length;
+    const limiteTexto = limiteCasaClub === 0 ? 'todos' : limiteCasaClub;
+    const textoLimite = limiteCasaClub > 0 && totalMostrado >= limiteCasaClub 
+        ? ` (mostrando últimos ${limiteTexto})` 
+        : '';
+    
+    countCasaClub.textContent = `${totalMostrado} ${totalMostrado === 1 ? 'registro' : 'registros'}${textoLimite}`;
     
     if (datos.length === 0) {
         tablaCasaClub.innerHTML = `
             <tr>
-                <td colspan="7">
+                <td colspan="8">
                     <div class="table-empty">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                             <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -187,26 +375,34 @@ function renderizarTablaCasaClub(datos) {
     }
     
     tablaCasaClub.innerHTML = datos.map(registro => {
-        const estadoActivo = !registro.horaSalida;
+        const estadoActivo = registro.horaSalida;
         const badgeEstado = estadoActivo 
-            ? '<span style="display: inline-block; padding: 6px 14px; background: #FEF3C7; color: #92400E; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">En instalaciones</span>'
-            : '<span style="display: inline-block; padding: 6px 14px; background: #D1FAE5; color: #065F46; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Completado</span>';
+            ? '<span class="badge-completed">Completado</span>'
+            : '<span class="badge-active">En instalaciones</span>';
         
         return `
             <tr>
-                <td style="font-weight: 600; color: #1F2937;">${registro.nombre || ''}</td>
-                <td>
-                    <span style="display: inline-block; padding: 5px 12px; background: #E67E22; color: white; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                <td class="td-nombre">${registro.nombre || ''}</td>
+                <td class="td-categoria">
+                    <span class="badge-category-casa">
                         ${registro.categoria || ''}
                     </span>
                 </td>
-                <td style="color: #6B7280;">${registro.celular || ''}</td>
-                <td style="color: #4B5563; max-width: 300px;">${registro.motivo || ''}</td>
-                <td style="font-weight: 500; color: #059669;">${registro.horaEntrada || ''}</td>
-                <td style="font-weight: 500; color: ${estadoActivo ? '#9CA3AF' : '#DC2626'};">
-                    ${registro.horaSalida || '—'}
+                <td class="td-celular">${registro.celular || ''}</td>
+                <td class="td-motivo">${registro.motivo || ''}</td>
+                <td class="td-hora td-entrada">${registro.horaEntrada || ''}</td>
+                <td class="td-hora td-salida">${registro.horaSalida || '—'}</td>
+                <td class="td-estado">${badgeEstado}</td>
+                <td class="td-actions">
+                    <button class="btn-delete" onclick="eliminarRegistroCasaClub('${registro.id}')" title="Eliminar registro">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                    </button>
                 </td>
-                <td>${badgeEstado}</td>
             </tr>
         `;
     }).join('');
@@ -217,12 +413,18 @@ function renderizarTablaCasaClub(datos) {
 // ========================================
 
 function renderizarTablaComedor(datos) {
-    countComedor.textContent = `${datos.length} ${datos.length === 1 ? 'registro' : 'registros'}`;
+    const totalMostrado = datos.length;
+    const limiteTexto = limiteComedor === 0 ? 'todos' : limiteComedor;
+    const textoLimite = limiteComedor > 0 && totalMostrado >= limiteComedor 
+        ? ` (mostrando últimos ${limiteTexto})` 
+        : '';
+    
+    countComedor.textContent = `${totalMostrado} ${totalMostrado === 1 ? 'registro' : 'registros'}${textoLimite}`;
     
     if (datos.length === 0) {
         tablaComedor.innerHTML = `
             <tr>
-                <td colspan="3">
+                <td colspan="4">
                     <div class="table-empty">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                             <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -237,13 +439,23 @@ function renderizarTablaComedor(datos) {
     
     tablaComedor.innerHTML = datos.map(registro => `
         <tr>
-            <td style="font-weight: 600; color: #1F2937;">${registro.nombre || ''}</td>
-            <td>
-                <span style="display: inline-block; padding: 5px 12px; background: #10B981; color: white; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+            <td class="td-nombre">${registro.nombre || ''}</td>
+            <td class="td-categoria">
+                <span class="badge-category-comedor">
                     ${registro.categoria || ''}
                 </span>
             </td>
-            <td style="font-weight: 500; color: #059669;">${registro.horaEntrada || ''}</td>
+            <td class="td-hora">${registro.horaEntrada || ''}</td>
+            <td class="td-actions">
+                <button class="btn-delete" onclick="eliminarRegistroComedor('${registro.id}')" title="Eliminar registro">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                </button>
+            </td>
         </tr>
     `).join('');
 }
@@ -296,7 +508,7 @@ filtroCategoriaComedor.addEventListener('change', aplicarFiltrosComedor);
 function mostrarError(seccion) {
     const mensaje = `
         <tr>
-            <td colspan="${seccion === 'Casa Club' ? '7' : '3'}">
+            <td colspan="${seccion === 'Casa Club' ? '8' : '4'}">
                 <div class="table-empty">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -314,6 +526,30 @@ function mostrarError(seccion) {
     } else {
         tablaComedor.innerHTML = mensaje;
     }
+}
+
+// ========================================
+// NOTIFICATIONS
+// ========================================
+
+function mostrarNotificacion(mensaje, tipo) {
+    const notif = document.createElement('div');
+    notif.className = `notification ${tipo}`;
+    notif.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            ${tipo === 'success' 
+                ? '<polyline points="20 6 9 17 4 12"></polyline>' 
+                : '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>'}
+        </svg>
+        <span>${mensaje}</span>
+    `;
+    
+    document.body.appendChild(notif);
+    
+    setTimeout(() => {
+        notif.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notif.remove(), 300);
+    }, 3000);
 }
 
 // ========================================
@@ -355,13 +591,13 @@ btnExportarCasaClub.addEventListener('click', async () => {
             r.categoria || '',
             r.celular || '',
             (r.motivo || '').substring(0, 40) + ((r.motivo || '').length > 40 ? '...' : ''),
-            r.horaEntrada || '',
-            r.horaSalida || 'Activo'
+            r.horaSalida || '—',
+            r.horaEntrada || ''
         ]);
         
         doc.autoTable({
             startY: 42,
-            head: [['Nombre', 'Categoría', 'Celular', 'Destino', 'Entrada', 'Salida']],
+            head: [['Nombre', 'Categoría', 'Celular', 'Destino', 'Salida', 'Entrada']],
             body: datosTabla,
             theme: 'striped',
             headStyles: {
@@ -401,9 +637,11 @@ btnExportarCasaClub.addEventListener('click', async () => {
         
         doc.save(`Casa_Club_${new Date().toISOString().split('T')[0]}.pdf`);
         
+        mostrarNotificacion('PDF generado correctamente', 'success');
+        
     } catch (error) {
         console.error('Error al generar PDF:', error);
-        alert('Error al generar el PDF. Intenta nuevamente.');
+        mostrarNotificacion('Error al generar el PDF. Intenta nuevamente.', 'error');
     }
 });
 
@@ -489,11 +727,27 @@ btnExportarComedor.addEventListener('click', async () => {
         
         doc.save(`Comedor_${new Date().toISOString().split('T')[0]}.pdf`);
         
+        mostrarNotificacion('PDF generado correctamente', 'success');
+        
     } catch (error) {
         console.error('Error al generar PDF:', error);
-        alert('Error al generar el PDF. Intenta nuevamente.');
+        mostrarNotificacion('Error al generar el PDF. Intenta nuevamente.', 'error');
     }
 });
+
+// ========================================
+// EVENT LISTENERS FOR DELETE ALL BUTTONS
+// ========================================
+
+btnBorrarTodoCasaClub.addEventListener('click', borrarTodosCasaClub);
+btnBorrarTodoComedor.addEventListener('click', borrarTodosComedor);
+
+// ========================================
+// MAKE FUNCTIONS GLOBAL FOR ONCLICK
+// ========================================
+
+window.eliminarRegistroCasaClub = eliminarRegistroCasaClub;
+window.eliminarRegistroComedor = eliminarRegistroComedor;
 
 // ========================================
 // INITIALIZATION
@@ -501,19 +755,20 @@ btnExportarComedor.addEventListener('click', async () => {
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Load initial data
-        await Promise.all([
-            cargarDatosCasaClub(),
-            cargarDatosComedor()
-        ]);
+        console.log('🚀 Iniciando aplicación OPTIMIZADA...');
+        console.log(`📊 Límite inicial: ${limiteCasaClub} registros`);
         
-        // Configure real-time listeners
+        updateConnectionStatus(true);
+        
         configurarListenersCasaClub();
         configurarListenersComedor();
         
-        updateConnectionStatus(true);
+        console.log('✅ Sistema iniciado');
+        mostrarNotificacion('Sistema iniciado correctamente', 'success');
+        
     } catch (error) {
-        console.error('Error en inicialización:', error);
+        console.error('❌ Error en inicialización:', error);
         updateConnectionStatus(false);
+        mostrarNotificacion('Error al iniciar el sistema', 'error');
     }
 });
