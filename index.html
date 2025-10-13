@@ -240,8 +240,53 @@
         </main>
     </div>
 
+    <!-- Modal de confirmación para borrar todo -->
+    <div id="modalBorrarTodo" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="modal-icon-danger">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </div>
+                <h2 class="modal-title">⚠️ Advertencia: Acción Irreversible</h2>
+            </div>
+            
+            <div class="modal-body">
+                <p class="modal-message">
+                    Esta acción eliminará <strong>TODOS</strong> los registros de <span id="modalSeccion">Casa Club</span>.
+                </p>
+                <p class="modal-warning">
+                    Esta operación <strong>no se puede deshacer</strong> y los datos no podrán ser recuperados.
+                </p>
+                
+                <div class="modal-input-group">
+                    <label for="modalConfirmInput">Para confirmar, escribe la palabra: <strong>BORRAR</strong></label>
+                    <input 
+                        type="text" 
+                        id="modalConfirmInput" 
+                        class="modal-input" 
+                        placeholder="Escribe BORRAR aquí"
+                        autocomplete="off"
+                    >
+                    <p id="modalError" class="modal-error"></p>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" id="modalBtnCancelar">
+                    Cancelar
+                </button>
+                <button class="modal-btn modal-btn-danger" id="modalBtnConfirmar">
+                    Eliminar Todo
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase SDK -->
     <script type="module" src="admin.js"></script>
 </body>
 </html>
-
