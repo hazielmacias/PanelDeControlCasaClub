@@ -131,24 +131,114 @@ async function eliminarRegistroComedor(id) {
 }
 
 // ========================================
+// MODAL DE CONFIRMACIÓN
+// ========================================
+
+function abrirModalBorrar(seccion, callback) {
+    const modal = document.getElementById('modalBorrarTodo');
+    const modalSeccion = document.getElementById('modalSeccion');
+    const input = document.getElementById('modalConfirmInput');
+    const btnConfirmar = document.getElementById('modalBtnConfirmar');
+    const btnCancelar = document.getElementById('modalBtnCancelar');
+    const errorMsg = document.getElementById('modalError');
+    
+    // Configurar el modal
+    modalSeccion.textContent = seccion;
+    input.value = '';
+    errorMsg.textContent = '';
+    input.classList.remove('error');
+    
+    // Mostrar modal
+    modal.classList.add('active');
+    setTimeout(() => input.focus(), 100);
+    
+    // Validar input en tiempo real
+    input.addEventListener('input', () => {
+        const valor = input.value.toUpperCase();
+        if (valor && valor !== 'BORRAR') {
+            input.classList.add('error');
+            errorMsg.textContent = 'Debes escribir exactamente "BORRAR"';
+        } else {
+            input.classList.remove('error');
+            errorMsg.textContent = '';
+        }
+    });
+    
+    // Función para cerrar modal
+    const cerrarModal = () => {
+        modal.classList.remove('active');
+        input.removeEventListener('input', validarInput);
+        input.removeEventListener('keypress', manejarEnter);
+    };
+    
+    // Manejar Enter en el input
+    const manejarEnter = (e) => {
+        if (e.key === 'Enter') {
+            btnConfirmar.click();
+        }
+    };
+    
+    input.addEventListener('keypress', manejarEnter);
+    
+    // Validar input
+    const validarInput = () => {
+        const valor = input.value.toUpperCase();
+        if (valor && valor !== 'BORRAR') {
+            input.classList.add('error');
+            errorMsg.textContent = 'Debes escribir exactamente "BORRAR"';
+        } else {
+            input.classList.remove('error');
+            errorMsg.textContent = '';
+        }
+    };
+    
+    // Botón cancelar
+    btnCancelar.onclick = () => {
+        cerrarModal();
+        mostrarNotificacion('Operación cancelada', 'error');
+    };
+    
+    // Botón confirmar
+    btnConfirmar.onclick = async () => {
+        const valor = input.value.toUpperCase();
+        
+        if (valor !== 'BORRAR') {
+            input.classList.add('error');
+            errorMsg.textContent = 'Debes escribir exactamente "BORRAR" para confirmar';
+            input.focus();
+            return;
+        }
+        
+        // Deshabilitar botones mientras se ejecuta
+        btnConfirmar.disabled = true;
+        btnCancelar.disabled = true;
+        btnConfirmar.textContent = 'Eliminando...';
+        
+        try {
+            await callback();
+            cerrarModal();
+        } catch (error) {
+            btnConfirmar.disabled = false;
+            btnCancelar.disabled = false;
+            btnConfirmar.textContent = 'Eliminar Todo';
+        }
+    };
+    
+    // Cerrar al hacer clic fuera del modal
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            cerrarModal();
+            mostrarNotificacion('Operación cancelada', 'error');
+        }
+    };
+}
+
+// ========================================
 // DELETE FUNCTIONS - BULK DELETE
 // ========================================
 
 async function borrarTodosCasaClub() {
-    const confirmacion = prompt(
-        '⚠️ ADVERTENCIA: Esta acción eliminará TODOS los registros de Casa Club.\n\n' +
-        'Para confirmar, escribe la palabra: BORRAR\n\n' +
-        '(Esta acción no se puede deshacer)'
-    );
-    
-    if (confirmacion === null) {
-        return;
-    }
-    
-    if (confirmacion.toUpperCase() !== 'BORRAR') {
-        mostrarNotificacion('Operación cancelada. Debes escribir "BORRAR" exactamente.', 'error');
-        return;
-    }
+    abrirModalBorrar('Casa Club', async () => {
     
     try {
         const batchSize = 100;
@@ -179,24 +269,13 @@ async function borrarTodosCasaClub() {
     } catch (error) {
         console.error('Error eliminando todos los registros:', error);
         mostrarNotificacion('Error al eliminar los registros. Intenta nuevamente.', 'error');
+        throw error; // Re-throw para que el modal maneje el error
     }
+    });
 }
 
 async function borrarTodosComedor() {
-    const confirmacion = prompt(
-        '⚠️ ADVERTENCIA: Esta acción eliminará TODOS los registros del Comedor.\n\n' +
-        'Para confirmar, escribe la palabra: BORRAR\n\n' +
-        '(Esta acción no se puede deshacer)'
-    );
-    
-    if (confirmacion === null) {
-        return;
-    }
-    
-    if (confirmacion.toUpperCase() !== 'BORRAR') {
-        mostrarNotificacion('Operación cancelada. Debes escribir "BORRAR" exactamente.', 'error');
-        return;
-    }
+    abrirModalBorrar('Comedor', async () => {
     
     try {
         const batchSize = 100;
@@ -227,7 +306,9 @@ async function borrarTodosComedor() {
     } catch (error) {
         console.error('Error eliminando todos los registros:', error);
         mostrarNotificacion('Error al eliminar los registros. Intenta nuevamente.', 'error');
+        throw error; // Re-throw para que el modal maneje el error
     }
+    });
 }
 
 // ========================================
@@ -597,7 +678,7 @@ btnExportarCasaClub.addEventListener('click', async () => {
         
         doc.autoTable({
             startY: 42,
-            head: [['Nombre', 'Categoría', 'Celular', 'Destino', 'Salida', 'Entrada']],
+            head: [['Nombre', 'Categoría', 'Celular', 'Destino', 'Llegada', 'Salida']],
             body: datosTabla,
             theme: 'striped',
             headStyles: {
@@ -763,7 +844,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         configurarListenersCasaClub();
         configurarListenersComedor();
         
-        console.log('Sistema iniciado');
+        console.log('✅ Sistema iniciado');
         mostrarNotificacion('Sistema iniciado correctamente', 'success');
         
     } catch (error) {
