@@ -390,7 +390,7 @@ selectLimiteCasa.addEventListener('change', (e) => {
     console.log(`🔄 Cambiando límite Casa Club a: ${nuevoLimite === 0 ? 'todos' : nuevoLimite}`);
     
     if (nuevoLimite === 0) {
-        mostrarNotificacion('⚠️ Cargando TODOS los registros. Esto puede consumir muchas lecturas.', 'error');
+        mostrarNotificacion('Cargando todos los registros', 'error');
     }
     
     configurarListenersCasaClub();
@@ -844,12 +844,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         configurarListenersCasaClub();
         configurarListenersComedor();
         
-        console.log('✅ Sistema iniciado');
+        console.log('Sistema iniciado');
         mostrarNotificacion('Sistema iniciado correctamente', 'success');
         
     } catch (error) {
-        console.error('❌ Error en inicialización:', error);
+        console.error('Error en inicialización:', error);
         updateConnectionStatus(false);
         mostrarNotificacion('Error al iniciar el sistema', 'error');
     }
 });
+
