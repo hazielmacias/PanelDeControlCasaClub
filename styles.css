@@ -73,7 +73,6 @@ body {
     padding: 20px 0;
     overflow-x: hidden;
 }
-
 /* Fondos específicos por página */
 .casa-club-body {
     background: linear-gradient(135deg, #FFF5E6 0%, #FFE8CC 50%, #ECF0F1 100%);
@@ -88,7 +87,6 @@ body {
     padding: 0;
     overflow-x: hidden;
 }
-
 /* ========================================
    CONTAINER
 ======================================== */
@@ -102,7 +100,6 @@ body {
 .admin-container {
     max-width: 1400px;
 }
-
 /* ========================================
    HEADER
 ======================================== */
@@ -177,7 +174,6 @@ body {
     background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);
     color: white;
 }
-
 /* ========================================
    CARDS
 ======================================== */
@@ -1551,3 +1547,4 @@ body {
         justify-content: center;
     }
 }
+
