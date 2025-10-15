@@ -88,6 +88,56 @@ let unsubscribeComedor = null;
 // NAVIGATION HANDLING
 // ========================================
 
+// Mobile menu handling
+const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+const mobileCloseBtn = document.getElementById('mobileCloseBtn');
+const adminSidebar = document.getElementById('adminSidebar');
+
+function openMobileMenu() {
+    if (adminSidebar) {
+        adminSidebar.classList.add('mobile-open');
+        document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
+    }
+}
+
+function closeMobileMenu() {
+    if (adminSidebar) {
+        adminSidebar.classList.remove('mobile-open');
+        document.body.style.overflow = ''; // Restore scrolling
+    }
+}
+
+// Open menu when clicking hamburger
+if (mobileMenuToggle) {
+    mobileMenuToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openMobileMenu();
+    });
+}
+
+// Close menu when clicking X button
+if (mobileCloseBtn) {
+    mobileCloseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeMobileMenu();
+    });
+}
+
+// Close menu when clicking on overlay (outside sidebar)
+document.addEventListener('click', (e) => {
+    if (adminSidebar && adminSidebar.classList.contains('mobile-open')) {
+        // Check if click is outside sidebar and not on toggle buttons
+        if (!adminSidebar.contains(e.target) && 
+            e.target !== mobileMenuToggle && 
+            e.target !== mobileCloseBtn &&
+            !mobileMenuToggle.contains(e.target) &&
+            !mobileCloseBtn.contains(e.target)) {
+            closeMobileMenu();
+        }
+    }
+});
+
+// Tab navigation
 document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
@@ -95,6 +145,9 @@ document.querySelectorAll('.nav-item').forEach(btn => {
         
         btn.classList.add('active');
         document.getElementById(btn.dataset.tab).classList.add('active');
+        
+        // Close mobile menu after selecting a tab on all screen sizes
+        closeMobileMenu();
     });
 });
 
@@ -239,75 +292,73 @@ function abrirModalBorrar(seccion, callback) {
 
 async function borrarTodosCasaClub() {
     abrirModalBorrar('Casa Club', async () => {
-    
-    try {
-        const batchSize = 100;
-        let totalEliminados = 0;
-        
-        mostrarNotificacion('Iniciando eliminación masiva...', 'success');
-        
-        while (true) {
-            const q = query(collection(db, CASA_CLUB_COLLECTION), limit(batchSize));
-            const querySnapshot = await getDocs(q);
+        try {
+            const batchSize = 100;
+            let totalEliminados = 0;
             
-            if (querySnapshot.empty) {
-                break;
+            mostrarNotificacion('Iniciando eliminación masiva...', 'success');
+            
+            while (true) {
+                const q = query(collection(db, CASA_CLUB_COLLECTION), limit(batchSize));
+                const querySnapshot = await getDocs(q);
+                
+                if (querySnapshot.empty) {
+                    break;
+                }
+                
+                const promesas = querySnapshot.docs.map(documento => 
+                    deleteDoc(doc(db, CASA_CLUB_COLLECTION, documento.id))
+                );
+                
+                await Promise.all(promesas);
+                totalEliminados += querySnapshot.size;
+                
+                mostrarNotificacion(`Eliminados ${totalEliminados} registros...`, 'success');
             }
             
-            const promesas = querySnapshot.docs.map(documento => 
-                deleteDoc(doc(db, CASA_CLUB_COLLECTION, documento.id))
-            );
+            mostrarNotificacion(`✅ Total eliminados: ${totalEliminados} registros`, 'success');
             
-            await Promise.all(promesas);
-            totalEliminados += querySnapshot.size;
-            
-            mostrarNotificacion(`Eliminados ${totalEliminados} registros...`, 'success');
+        } catch (error) {
+            console.error('Error eliminando todos los registros:', error);
+            mostrarNotificacion('Error al eliminar los registros. Intenta nuevamente.', 'error');
+            throw error; // Re-throw para que el modal maneje el error
         }
-        
-        mostrarNotificacion(`✅ Total eliminados: ${totalEliminados} registros`, 'success');
-        
-    } catch (error) {
-        console.error('Error eliminando todos los registros:', error);
-        mostrarNotificacion('Error al eliminar los registros. Intenta nuevamente.', 'error');
-        throw error; // Re-throw para que el modal maneje el error
-    }
     });
 }
 
 async function borrarTodosComedor() {
     abrirModalBorrar('Comedor', async () => {
-    
-    try {
-        const batchSize = 100;
-        let totalEliminados = 0;
-        
-        mostrarNotificacion('Iniciando eliminación masiva...', 'success');
-        
-        while (true) {
-            const q = query(collection(db, COMEDOR_COLLECTION), limit(batchSize));
-            const querySnapshot = await getDocs(q);
+        try {
+            const batchSize = 100;
+            let totalEliminados = 0;
             
-            if (querySnapshot.empty) {
-                break;
+            mostrarNotificacion('Iniciando eliminación masiva...', 'success');
+            
+            while (true) {
+                const q = query(collection(db, COMEDOR_COLLECTION), limit(batchSize));
+                const querySnapshot = await getDocs(q);
+                
+                if (querySnapshot.empty) {
+                    break;
+                }
+                
+                const promesas = querySnapshot.docs.map(documento => 
+                    deleteDoc(doc(db, COMEDOR_COLLECTION, documento.id))
+                );
+                
+                await Promise.all(promesas);
+                totalEliminados += querySnapshot.size;
+                
+                mostrarNotificacion(`Eliminados ${totalEliminados} registros...`, 'success');
             }
             
-            const promesas = querySnapshot.docs.map(documento => 
-                deleteDoc(doc(db, COMEDOR_COLLECTION, documento.id))
-            );
+            mostrarNotificacion(`✅ Total eliminados: ${totalEliminados} registros`, 'success');
             
-            await Promise.all(promesas);
-            totalEliminados += querySnapshot.size;
-            
-            mostrarNotificacion(`Eliminados ${totalEliminados} registros...`, 'success');
+        } catch (error) {
+            console.error('Error eliminando todos los registros:', error);
+            mostrarNotificacion('Error al eliminar los registros. Intenta nuevamente.', 'error');
+            throw error; // Re-throw para que el modal maneje el error
         }
-        
-        mostrarNotificacion(`✅ Total eliminados: ${totalEliminados} registros`, 'success');
-        
-    } catch (error) {
-        console.error('Error eliminando todos los registros:', error);
-        mostrarNotificacion('Error al eliminar los registros. Intenta nuevamente.', 'error');
-        throw error; // Re-throw para que el modal maneje el error
-    }
     });
 }
 
@@ -403,7 +454,7 @@ selectLimiteComedor.addEventListener('change', (e) => {
     console.log(`🔄 Cambiando límite Comedor a: ${nuevoLimite === 0 ? 'todos' : nuevoLimite}`);
     
     if (nuevoLimite === 0) {
-        mostrarNotificacion('⚠️ Cargando TODOS los registros. Esto puede consumir muchas lecturas.', 'error');
+        mostrarNotificacion('Cargando todos los registros', 'error');
     }
     
     configurarListenersComedor();
@@ -459,7 +510,7 @@ function renderizarTablaCasaClub(datos) {
         const estadoActivo = registro.horaSalida;
         const badgeEstado = estadoActivo 
             ? '<span class="badge-completed">Completado</span>'
-            : '<span class="badge-active">En instalaciones</span>';
+            : '<span class="badge-active">Fuera de Casa Club</span>';
         
         return `
             <tr>
@@ -678,7 +729,7 @@ btnExportarCasaClub.addEventListener('click', async () => {
         
         doc.autoTable({
             startY: 42,
-            head: [['Nombre', 'Categoría', 'Celular', 'Destino', 'Llegada', 'Salida']],
+            head: [['Nombre', 'Categoría', 'Celular', 'Destino', 'Salida', 'Entrada']],
             body: datosTabla,
             theme: 'striped',
             headStyles: {
@@ -844,13 +895,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         configurarListenersCasaClub();
         configurarListenersComedor();
         
-        console.log('Sistema iniciado');
+        console.log('✅ Sistema iniciado');
         mostrarNotificacion('Sistema iniciado correctamente', 'success');
         
     } catch (error) {
-        console.error('Error en inicialización:', error);
+        console.error('❌ Error en inicialización:', error);
         updateConnectionStatus(false);
         mostrarNotificacion('Error al iniciar el sistema', 'error');
     }
 });
-
