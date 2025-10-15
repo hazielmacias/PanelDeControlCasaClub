@@ -15,7 +15,6 @@ import {
     limit,
     enableIndexedDbPersistence
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-
 const firebaseConfig = {
     apiKey: "AIzaSyClwvb8lXmsRyiTudeRyzca7ooN0r4q-So",
     authDomain: "casaclubpaneldecontrol.firebaseapp.com",
@@ -25,11 +24,9 @@ const firebaseConfig = {
     appId: "1:531451798447:web:e244172ce5c95f5e70855a",
     measurementId: "G-X5RSV4WY8X"
 };
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-
 // OPTIMIZACIÓN: Habilitar caché local para reducir lecturas
 enableIndexedDbPersistence(db).catch((err) => {
     if (err.code === 'failed-precondition') {
@@ -38,7 +35,6 @@ enableIndexedDbPersistence(db).catch((err) => {
         console.warn('Persistencia no soportada en este navegador');
     }
 });
-
 // ========================================
 // CONFIGURACIÓN DE OPTIMIZACIÓN
 // ========================================
@@ -904,3 +900,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         mostrarNotificacion('Error al iniciar el sistema', 'error');
     }
 });
+
