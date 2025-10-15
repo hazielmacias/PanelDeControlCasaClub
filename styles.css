@@ -18,6 +18,7 @@
     --shadow: rgba(0, 0, 0, 0.08);
     --shadow-hover: rgba(0, 0, 0, 0.15);
 }
+
 /* ========================================
    ANIMACIONES GLOBALES
 ======================================== */
@@ -53,6 +54,7 @@
         opacity: 0;
     }
 }
+
 /* ========================================
    RESET Y BASE
 ======================================== */
@@ -69,6 +71,7 @@ body {
     line-height: 1.6;
     min-height: 100vh;
     padding: 20px 0;
+    overflow-x: hidden;
 }
 
 /* Fondos específicos por página */
@@ -83,7 +86,9 @@ body {
 .admin-body {
     background: #F5F7FA;
     padding: 0;
+    overflow-x: hidden;
 }
+
 /* ========================================
    CONTAINER
 ======================================== */
@@ -97,6 +102,7 @@ body {
 .admin-container {
     max-width: 1400px;
 }
+
 /* ========================================
    HEADER
 ======================================== */
@@ -413,6 +419,77 @@ body {
 .admin-wrapper {
     display: flex;
     min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+    width: 100%;
+}
+
+/* Mobile Menu Toggle Button - SIEMPRE A LA IZQUIERDA */
+.mobile-menu-toggle {
+    display: flex;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1002;
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);
+    transition: all 0.3s ease;
+}
+
+.mobile-menu-toggle:hover {
+    background: var(--primary-dark);
+    transform: scale(1.05);
+}
+
+.mobile-menu-toggle:active {
+    transform: scale(0.95);
+}
+
+/* Mobile Close Button - MISMO LUGAR QUE HAMBURGUESA */
+.mobile-close-btn {
+    display: none;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1003;
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: white;
+    border: 2px solid var(--danger);
+    color: var(--danger);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+    transition: all 0.3s ease;
+}
+
+.mobile-close-btn:hover {
+    background: var(--danger);
+    color: white;
+    transform: scale(1.05);
+}
+
+.mobile-close-btn:active {
+    transform: scale(0.95);
+}
+
+/* Show close button and hide hamburger when sidebar is open */
+.admin-sidebar.mobile-open ~ .mobile-menu-toggle {
+    display: none;
+}
+
+.admin-sidebar.mobile-open ~ .mobile-close-btn {
+    display: flex;
 }
 
 /* Sidebar */
@@ -426,18 +503,28 @@ body {
     height: 100vh;
     left: 0;
     top: 0;
-    z-index: 1000;
+    z-index: 1001;
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .sidebar-header {
-    padding: 30px 25px;
+    padding: 20px 25px 30px;
     border-bottom: 1px solid #E1E8ED;
+}
+
+.sidebar-header-content {
+    display: flex;
+    justify-content: flex-center;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-left: 60px; /* Space for hamburger button */
 }
 
 .sidebar-logo {
     width: 120px;
     height: auto;
-    margin-bottom: 20px;
 }
 
 .sidebar-header h2 {
@@ -456,6 +543,7 @@ body {
 .sidebar-nav {
     padding: 20px 15px;
     flex: 1;
+    position: relative;
 }
 
 .nav-item {
@@ -495,6 +583,9 @@ body {
     flex: 1;
     padding: 30px 40px;
     animation: fadeIn 0.4s ease;
+    width: calc(100% - 280px);
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 .content-header {
@@ -696,11 +787,13 @@ body {
     border: 1px solid #E1E8ED;
     border-radius: 12px;
     overflow: hidden;
+    max-width: 100%;
 }
 
 .table-responsive {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    max-width: 100%;
 }
 
 .table-modern {
@@ -913,6 +1006,7 @@ body {
     .admin-main {
         margin-left: 240px;
         padding: 25px 30px;
+        width: calc(100% - 240px);
     }
     
     .filters-card {
@@ -921,19 +1015,36 @@ body {
 }
 
 @media (max-width: 768px) {
+    /* Sidebar hidden by default on mobile */
     .admin-sidebar {
         transform: translateX(-100%);
-        transition: transform 0.3s ease;
+        box-shadow: none;
+        width: 280px;
     }
     
+    /* Show sidebar when open */
     .admin-sidebar.mobile-open {
         transform: translateX(0);
-        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Overlay when sidebar is open */
+    .admin-sidebar.mobile-open::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 280px;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(2px);
+        z-index: 1000;
     }
     
     .admin-main {
         margin-left: 0;
-        padding: 20px 15px;
+        padding: 80px 15px 20px;
+        width: 100%;
     }
     
     .content-header {
@@ -1413,28 +1524,6 @@ body {
     transform: none;
 }
 
-.select-limit {
-    padding: 10px 14px;
-    border: 1px solid #E1E8ED;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    background: white;
-    color: var(--secondary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.select-limit:hover {
-    border-color: var(--primary);
-}
-
-.select-limit:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.1);
-}
-
 /* Responsive modal */
 @media (max-width: 768px) {
     .modal-container {
@@ -1462,4 +1551,3 @@ body {
         justify-content: center;
     }
 }
-
