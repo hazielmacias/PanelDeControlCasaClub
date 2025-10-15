@@ -132,7 +132,6 @@ document.addEventListener('click', (e) => {
         }
     }
 });
-
 // Tab navigation
 document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -900,4 +899,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         mostrarNotificacion('Error al iniciar el sistema', 'error');
     }
 });
+
 
